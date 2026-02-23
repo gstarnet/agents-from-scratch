@@ -1,4 +1,5 @@
 from typing import Literal
+import os
 
 from langchain.chat_models import init_chat_model
 
@@ -13,18 +14,21 @@ from email_assistant.schemas import State, RouterSchema, StateInput, UserPrefere
 from email_assistant.utils import parse_email, format_for_display, format_email_markdown
 from dotenv import load_dotenv
 
-load_dotenv(".env")
+load_dotenv(".env", override=True)
+
+DEFAULT_MODEL = "openai:gpt-4.1" if os.getenv("OPENAI_API_KEY") else "ollama:qwen3:8b"
+MODEL_NAME = os.getenv("EMAIL_ASSISTANT_MODEL", DEFAULT_MODEL)
 
 # Get tools
 tools = get_tools(["write_email", "schedule_meeting", "check_calendar_availability", "Question", "Done"])
 tools_by_name = get_tools_by_name(tools)
 
 # Initialize the LLM for use with router / structured output
-llm = init_chat_model("openai:gpt-4.1", temperature=0.0)
+llm = init_chat_model(MODEL_NAME, temperature=0.0)
 llm_router = llm.with_structured_output(RouterSchema) 
 
 # Initialize the LLM, enforcing tool use (of any available tools) for agent
-llm = init_chat_model("openai:gpt-4.1", temperature=0.0)
+llm = init_chat_model(MODEL_NAME, temperature=0.0)
 llm_with_tools = llm.bind_tools(tools, tool_choice="required")
 
 def get_memory(store, namespace, default_content=None):
@@ -66,7 +70,7 @@ def update_memory(store, namespace, messages):
     # Get the existing memory
     user_preferences = store.get(namespace, "user_preferences")
     # Update the memory
-    llm = init_chat_model("openai:gpt-4.1", temperature=0.0).with_structured_output(UserPreferences)
+    llm = init_chat_model(MODEL_NAME, temperature=0.0).with_structured_output(UserPreferences)
     result = llm.invoke(
         [
             {"role": "system", "content": MEMORY_UPDATE_INSTRUCTIONS.format(current_profile=user_preferences.value, namespace=namespace)},

@@ -3,6 +3,7 @@
 import uuid
 import importlib
 import sys
+import os
 import pytest
 from typing import Dict, List, Any, Tuple
 from pydantic import BaseModel, Field
@@ -20,6 +21,9 @@ from email_assistant.eval.prompts import RESPONSE_CRITERIA_SYSTEM_PROMPT
 from dotenv import load_dotenv
 load_dotenv(".env", override=True)
 
+DEFAULT_EVAL_MODEL = "openai:gpt-4o" if os.getenv("OPENAI_API_KEY") else "ollama:qwen3:8b"
+EVAL_MODEL_NAME = os.getenv("EMAIL_ASSISTANT_EVAL_MODEL", DEFAULT_EVAL_MODEL)
+
 # Force reload the email_dataset module to ensure we get the latest version
 if "email_assistant.eval.email_dataset" in sys.modules:
     importlib.reload(sys.modules["email_assistant.eval.email_dataset"])
@@ -31,7 +35,7 @@ class CriteriaGrade(BaseModel):
     justification: str = Field(description="The justification for the grade and score, including specific examples from the response.")
 
 # Create a global LLM for evaluation to avoid recreating it for each test
-criteria_eval_llm = init_chat_model("openai:gpt-4o")
+criteria_eval_llm = init_chat_model(EVAL_MODEL_NAME)
 criteria_eval_structured_llm = criteria_eval_llm.with_structured_output(CriteriaGrade)
 
 # Global variables for module name and imported module
