@@ -61,3 +61,5 @@ htmlcov/
 .env.production.local
 .langgraph_api
 OLLAMA.txt
+output/
+tmp/
